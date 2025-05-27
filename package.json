@@ -1,0 +1,23 @@
+{
+  "name": "botlsroi",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "axios": "^1.9.0",
+    "cjs": "^0.0.11",
+    "decimal.js": "^10.5.0",
+    "dotenv": "^16.5.0",
+    "fs": "^0.0.1-security",
+    "patch": "^0.0.1",
+    "stack": "^0.1.0",
+    "telegraf": "^4.16.3",
+    "ws": "^8.18.2"
+  }
+}
