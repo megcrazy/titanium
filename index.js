@@ -244,19 +244,19 @@ async function verificarPares() {
         const filtrosLongAtendidos = oiSubindo && volume24hSubindo && lsrCaindo && lsrAbaixoLimite && precoAcimaEMAs;
 
         // --- DEBUG LOGS --- //
-        console.log(`[DEBUG ${par}] Preço 3m (REST): ${formatDecimal(preco_3m_atual)}`);
-        console.log(`[DEBUG ${par}] EMA55: ${formatDecimal(ema_55_3m)}, EMA233: ${formatDecimal(ema_233_3m)}`);
-        console.log(`[DEBUG ${par}] Preço > EMAs: ${precoAcimaEMAs}`);
-        console.log(`[DEBUG ${par}] OI: ${formatDecimal(anterior.open_interest, 0)} -> ${formatDecimal(dadosRest.open_interest, 0)} (Subindo: ${oiSubindo})`);
-        console.log(`[DEBUG ${par}] Vol 24h: ${formatDecimal(anterior.volume_24h, 0)} -> ${formatDecimal(dadosRest.volume_24h, 0)} (Subindo: ${volume24hSubindo})`);
-        if (lsrValido) {
-            console.log(`[DEBUG ${par}] LSR: ${formatDecimal(anterior.lsr)} -> ${formatDecimal(dadosRest.lsr)} (Caindo: ${lsrCaindo})`);
-            console.log(`[DEBUG ${par}] LSR < ${LIMITE_LSR_LONG}: ${lsrAbaixoLimite}`);
-        } else {
-            console.log(`[DEBUG ${par}] LSR: Inválido`);
-        }
-        console.log(`[DEBUG ${par}] Volume Anormal (3m REST): ${volumeAnormal}`);
-        console.log(`[DEBUG ${par}] Filtros LONG Atendidos: ${filtrosLongAtendidos}`);
+        // console.log(`[DEBUG ${par}] Preço 3m (REST): ${formatDecimal(preco_3m_atual)}`);
+        // console.log(`[DEBUG ${par}] EMA55: ${formatDecimal(ema_55_3m)}, EMA233: ${formatDecimal(ema_233_3m)}`);
+        // console.log(`[DEBUG ${par}] Preço > EMAs: ${precoAcimaEMAs}`);
+        // console.log(`[DEBUG ${par}] OI: ${formatDecimal(anterior.open_interest, 0)} -> ${formatDecimal(dadosRest.open_interest, 0)} (Subindo: ${oiSubindo})`);
+        // console.log(`[DEBUG ${par}] Vol 24h: ${formatDecimal(anterior.volume_24h, 0)} -> ${formatDecimal(dadosRest.volume_24h, 0)} (Subindo: ${volume24hSubindo})`);
+        // if (lsrValido) {
+        //     console.log(`[DEBUG ${par}] LSR: ${formatDecimal(anterior.lsr)} -> ${formatDecimal(dadosRest.lsr)} (Caindo: ${lsrCaindo})`);
+        //     console.log(`[DEBUG ${par}] LSR < ${LIMITE_LSR_LONG}: ${lsrAbaixoLimite}`);
+        // } else {
+        //     console.log(`[DEBUG ${par}] LSR: Inválido`);
+        // }
+        // console.log(`[DEBUG ${par}] Volume Anormal (3m REST): ${volumeAnormal}`);
+        // console.log(`[DEBUG ${par}] Filtros LONG Atendidos: ${filtrosLongAtendidos}`);
         // --- DEBUG LOGS END --- //
 
         // 5. Send Alert if Conditions Met
@@ -274,10 +274,24 @@ async function verificarPares() {
                 const tempoLimiteMs = TEMPO_MAX_LIQUIDACAO_MIN * 60 * 1000;
                 if (agora - ultimaLiquidacao.T <= tempoLimiteMs) {
                     const lado = ultimaLiquidacao.S; // Side (SELL or BUY)
-                    const tipoLiquidado = lado === "BUY" ? "Short" : "Long";
-                    const precoLiquidacao = formatDecimal(new Decimal(ultimaLiquidacao.ap), 2);
-                    const quantidade = formatDecimal(new Decimal(ultimaLiquidacao.q), 4);
-                    liquidacaoRecenteInfo = ` ${tipoLiquidado} @ ${precoLiquidacao} (Qtd: ${quantidade})`;
+                    // Determine which side was liquidated: If SELL happened, a LONG was liquidated.
+                    const tipoLiquidado = lado === "SELL" ? "Long" : "Short"; 
+
+                    // Use Decimal for precision
+                    const precoLiquidacaoDecimal = new Decimal(ultimaLiquidacao.ap); // Average Price ('ap')
+                    const quantidadeDecimal = new Decimal(ultimaLiquidacao.z); // Accumulated Filled Quantity ('z')
+
+                    // Calculate total value in USDT
+                    const valorTotalUsdt = precoLiquidacaoDecimal.times(quantidadeDecimal);
+
+                    // Format values (adjust precision as needed)
+                    const precoFormatado = formatDecimal(precoLiquidacaoDecimal, 3); // Price with 3 decimals like example
+                    const quantidadeFormatada = formatDecimal(quantidadeDecimal, 0); // Quantity as integer like example (adjust if needed)
+                    const valorTotalFormatado = formatDecimal(valorTotalUsdt, 2); // Total value with 2 decimals
+
+                    // Construct the liquidation info string including the total value
+                    liquidacaoRecenteInfo = ` ${tipoLiquidado} @ ${precoFormatado} (Qtd: ${quantidadeFormatada}, Valor: $${valorTotalFormatado})`;
+                    
                     delete ultimasLiquidacoes[par]; // Consume the liquidation info after reporting
                 }
             }
@@ -286,7 +300,7 @@ async function verificarPares() {
 `${alertaEmoji} *Analisar Long #${numeroAlerta}* 💁🏼‍♀️
 
 *Par:* \`${par}\`
-*Preço:* $${formatDecimal(preco_3m_atual)}
+*Preço:* $${formatDecimal(preco_3m_atual, 3)}  
 *Liquidação Recente:* ${liquidacaoRecenteInfo}
 *Condições Atendidas:*
   ✅ OI Subindo (${formatDecimal(anterior.open_interest, 0)} -> ${formatDecimal(dadosRest.open_interest, 0)})
@@ -359,7 +373,7 @@ process.on("SIGTERM", shutdown);
 
 // Start the main function
 main().catch(error => {
-    console.error("Erro fatal na execução principal:", error);
+    console.error("Erro fatal no loop principal:", error);
     process.exit(1);
 });
 
