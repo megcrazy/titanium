@@ -36,6 +36,6 @@ jobs:
         with:
           project: "megcrazy-titanium-34"
           entrypoint: "index.js"
-          root: ""
+          root: "bot"
           
           
